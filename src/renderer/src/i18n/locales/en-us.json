@@ -415,6 +415,7 @@
       "selectedItems": "Selected {{count}} items",
       "success": "Success",
       "topics": "Topics",
+      "all_topics": "All Topics",
       "warning": "Warning",
       "you": "You",
       "reasoning_content": "Deep reasoning",
@@ -1333,6 +1334,7 @@
       "display.sidebar.translate.icon": "Show Translate icon",
       "display.sidebar.visible": "Show icons",
       "display.title": "Display Settings",
+      "display.minimal_mode": "Minimal Mode",
       "display.zoom.title": "Zoom Settings",
       "display.topic.title": "Topic Settings",
       "miniapps": {

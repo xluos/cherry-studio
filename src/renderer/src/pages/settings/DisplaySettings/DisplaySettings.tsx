@@ -66,7 +66,9 @@ const DisplaySettings: FC = () => {
     sidebarIcons,
     setTheme,
     assistantIconType,
-    userTheme
+    userTheme,
+    enableMinimalMode,
+    setEnableMinimalMode
   } = useSettings()
   const { theme, settedTheme } = useTheme()
   const { t } = useTranslation()
@@ -215,6 +217,11 @@ const DisplaySettings: FC = () => {
             </SettingRow>
           </>
         )}
+        <SettingDivider />
+        <SettingRow>
+          <SettingRowTitle>{t('settings.display.minimal_mode')}</SettingRowTitle>
+          <Switch checked={enableMinimalMode} onChange={setEnableMinimalMode} />
+        </SettingRow>
       </SettingGroup>
       <SettingGroup theme={theme}>
         <SettingTitle>{t('settings.display.zoom.title')}</SettingTitle>

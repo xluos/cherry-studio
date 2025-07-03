@@ -1,6 +1,5 @@
 import {
   ClearOutlined,
-  CloseOutlined,
   DeleteOutlined,
   EditOutlined,
   FolderOutlined,
@@ -14,15 +13,13 @@ import CopyIcon from '@renderer/components/Icons/CopyIcon'
 import ObsidianExportPopup from '@renderer/components/Popups/ObsidianExportPopup'
 import PromptPopup from '@renderer/components/Popups/PromptPopup'
 import Scrollbar from '@renderer/components/Scrollbar'
-import { isMac } from '@renderer/config/constant'
 import { useAssistant, useAssistants } from '@renderer/hooks/useAssistant'
 import { modelGenerating } from '@renderer/hooks/useRuntime'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { finishTopicRenaming, startTopicRenaming, TopicManager } from '@renderer/hooks/useTopic'
 import { fetchMessagesSummary } from '@renderer/services/ApiService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
-import store from '@renderer/store'
-import { RootState } from '@renderer/store'
+import store, { RootState } from '@renderer/store'
 import { setGenerating } from '@renderer/store/runtime'
 import { Assistant, Topic } from '@renderer/types'
 import { removeSpecialCharactersForFileName } from '@renderer/utils'
@@ -38,12 +35,13 @@ import {
 import { hasTopicPendingRequests } from '@renderer/utils/queue'
 import { Dropdown, MenuProps, Tooltip } from 'antd'
 import { ItemType, MenuItemType } from 'antd/es/menu/interface'
-import dayjs from 'dayjs'
 import { findIndex } from 'lodash'
 import { FC, startTransition, useCallback, useDeferredValue, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 import styled from 'styled-components'
+
+import TopicItem from './components/TopicItem'
 
 interface Props {
   assistant: Assistant
@@ -452,72 +450,25 @@ const Topics: FC<Props> = ({ assistant: _assistant, activeTopic, setActiveTopic 
         <DragableList list={sortedTopics} onUpdate={updateTopics}>
           {(topic) => {
             const isActive = topic.id === activeTopic?.id
-            const topicName = topic.name.replace('`', '')
-            const topicPrompt = topic.prompt
-            const fullTopicPrompt = t('common.prompt') + ': ' + topicPrompt
-
-            const getTopicNameClassName = () => {
-              if (isRenaming(topic.id)) return 'shimmer'
-              if (isNewlyRenamed(topic.id)) return 'typing'
-              return ''
-            }
+            const isDeleting = deletingTopicId === topic.id
 
             return (
-              <TopicListItem
+              <TopicItem
+                key={topic.id}
+                topic={topic}
+                isActive={isActive}
+                isPending={isPending(topic.id)}
+                isRenaming={isRenaming(topic.id)}
+                isNewlyRenamed={isNewlyRenamed(topic.id)}
+                isDeleting={isDeleting}
+                showTopicTime={showTopicTime}
+                showAssistantAvatar={false}
+                onSwitchTopic={onSwitchTopic}
+                onDeleteClick={handleDeleteClick}
+                onConfirmDelete={handleConfirmDelete}
                 onContextMenu={() => setTargetTopic(topic)}
-                className={isActive ? 'active' : ''}
-                onClick={() => onSwitchTopic(topic)}
-                style={{ borderRadius }}>
-                {isPending(topic.id) && !isActive && <PendingIndicator />}
-                <TopicNameContainer>
-                  <TopicName className={getTopicNameClassName()} title={topicName}>
-                    {topicName}
-                  </TopicName>
-                  {!topic.pinned && (
-                    <Tooltip
-                      placement="bottom"
-                      mouseEnterDelay={0.7}
-                      title={
-                        <div>
-                          <div style={{ fontSize: '12px', opacity: 0.8, fontStyle: 'italic' }}>
-                            {t('chat.topics.delete.shortcut', { key: isMac ? '⌘' : 'Ctrl' })}
-                          </div>
-                        </div>
-                      }>
-                      <MenuButton
-                        className="menu"
-                        onClick={(e) => {
-                          if (e.ctrlKey || e.metaKey) {
-                            handleConfirmDelete(topic, e)
-                          } else if (deletingTopicId === topic.id) {
-                            handleConfirmDelete(topic, e)
-                          } else {
-                            handleDeleteClick(topic.id, e)
-                          }
-                        }}>
-                        {deletingTopicId === topic.id ? (
-                          <DeleteOutlined style={{ color: 'var(--color-error)' }} />
-                        ) : (
-                          <CloseOutlined />
-                        )}
-                      </MenuButton>
-                    </Tooltip>
-                  )}
-                  {topic.pinned && (
-                    <MenuButton className="pin">
-                      <PushpinOutlined />
-                    </MenuButton>
-                  )}
-                </TopicNameContainer>
-                {topicPrompt && (
-                  <TopicPromptText className="prompt" title={fullTopicPrompt}>
-                    {fullTopicPrompt}
-                  </TopicPromptText>
-                )}
-                {showTopicTime && (
-                  <TopicTime className="time">{dayjs(topic.createdAt).format('MM/DD HH:mm')}</TopicTime>
-                )}
-              </TopicListItem>
+                borderRadius={borderRadius}
+              />
             )
           }}
         </DragableList>

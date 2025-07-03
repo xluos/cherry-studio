@@ -8,10 +8,10 @@ import { setNewlyRenamedTopics, setRenamingTopics } from '@renderer/store/runtim
 import { loadTopicMessagesThunk } from '@renderer/store/thunk/messageThunk'
 import { Assistant, Topic } from '@renderer/types'
 import { findMainTextBlocks } from '@renderer/utils/messageUtils/find'
-import { find, isEmpty } from 'lodash'
-import { useEffect, useState } from 'react'
+import { find, isEmpty, orderBy } from 'lodash'
+import { useEffect, useMemo, useState } from 'react'
 
-import { useAssistant } from './useAssistant'
+import { useAssistant, useAssistants } from './useAssistant'
 import { getStoreSetting } from './useSettings'
 
 let _activeTopic: Topic
@@ -55,6 +55,25 @@ export async function getTopicById(topicId: string) {
   const topic = topics.find((topic) => topic.id === topicId)
   const messages = await TopicManager.getTopicMessages(topicId)
   return { ...topic, messages } as Topic
+}
+
+/**
+ * 获取所有话题，按时间排序
+ */
+export function useAllTopics() {
+  const { assistants } = useAssistants()
+
+  const allTopics = useMemo(() => {
+    const topicsWithAssistant: Array<Topic & { assistant: Assistant }> = []
+    assistants.forEach((assistant) => {
+      assistant.topics.forEach((topic) => {
+        topicsWithAssistant.push({ ...topic, assistant })
+      })
+    })
+    return orderBy(topicsWithAssistant, 'updatedAt', 'desc')
+  }, [assistants])
+
+  return allTopics
 }
 
 /**

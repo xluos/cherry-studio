@@ -71,6 +71,7 @@ export interface SettingsState {
   testPlan: boolean
   testChannel: UpgradeChannel
   renderInputMessageAsMarkdown: boolean
+  enableMinimalMode: boolean
   // 代码执行
   codeExecution: {
     enabled: boolean
@@ -225,6 +226,7 @@ export const initialState: SettingsState = {
   testPlan: false,
   testChannel: UpgradeChannel.LATEST,
   renderInputMessageAsMarkdown: false,
+  enableMinimalMode: false,
   codeExecution: {
     enabled: false,
     timeoutMinutes: 1
@@ -437,6 +439,9 @@ const settingsSlice = createSlice({
     },
     setRenderInputMessageAsMarkdown: (state, action: PayloadAction<boolean>) => {
       state.renderInputMessageAsMarkdown = action.payload
+    },
+    setEnableMinimalMode: (state, action: PayloadAction<boolean>) => {
+      state.enableMinimalMode = action.payload
     },
     setClickAssistantToShowTopic: (state, action: PayloadAction<boolean>) => {
       state.clickAssistantToShowTopic = action.payload
@@ -733,6 +738,7 @@ export const {
   setTestPlan,
   setTestChannel,
   setRenderInputMessageAsMarkdown,
+  setEnableMinimalMode,
   setClickAssistantToShowTopic,
   setSkipBackupFile,
   setWebdavHost,

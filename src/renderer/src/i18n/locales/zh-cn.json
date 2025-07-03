@@ -415,6 +415,7 @@
       "selectedItems": "已选择 {{count}} 项",
       "success": "成功",
       "topics": "话题",
+      "all_topics": "全部话题",
       "warning": "警告",
       "you": "用户",
       "reasoning_content": "已深度思考",
@@ -1333,6 +1334,7 @@
       "display.sidebar.translate.icon": "显示翻译图标",
       "display.sidebar.visible": "显示的图标",
       "display.title": "显示设置",
+      "display.minimal_mode": "极简模式",
       "display.zoom.title": "缩放设置",
       "display.topic.title": "话题设置",
       "miniapps": {

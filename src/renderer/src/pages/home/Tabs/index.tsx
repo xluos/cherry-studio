@@ -10,6 +10,7 @@ import { FC, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
+import AllTopics from './AllTopicsTab'
 import Assistants from './AssistantsTab'
 import Settings from './SettingsTab'
 import Topics from './TopicsTab'
@@ -24,7 +25,7 @@ interface Props {
   style?: React.CSSProperties
 }
 
-type Tab = 'assistants' | 'topic' | 'settings'
+type Tab = 'assistants' | 'topic' | 'settings' | 'all-topics'
 
 let _tab: any = ''
 
@@ -121,13 +122,18 @@ const HomeTabs: FC<Props> = ({
                   // icon: <MessageSquareQuote size={16} />
                 },
                 {
+                  label: t('common.all_topics'),
+                  value: 'all-topics'
+                  // icon: <FolderOutlined size={16} />
+                },
+                {
                   label: t('settings.title'),
                   value: 'settings'
                   // icon: <SettingsIcon size={16} />
                 }
               ].filter(Boolean) as SegmentedProps['options']
             }
-            onChange={(value) => setTab(value as 'topic' | 'settings')}
+            onChange={(value) => setTab(value as Tab)}
             block
           />
           <Divider />
@@ -145,6 +151,13 @@ const HomeTabs: FC<Props> = ({
         )}
         {tab === 'topic' && (
           <Topics assistant={activeAssistant} activeTopic={activeTopic} setActiveTopic={setActiveTopic} />
+        )}
+        {tab === 'all-topics' && (
+          <AllTopics
+            activeTopic={activeTopic}
+            setActiveTopic={setActiveTopic}
+            setActiveAssistant={setActiveAssistant}
+          />
         )}
         {tab === 'settings' && <Settings assistant={activeAssistant} />}
       </TabContent>
