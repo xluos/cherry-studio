@@ -4,12 +4,12 @@ import { useSettings } from '@renderer/hooks/useSettings'
 import i18n from '@renderer/i18n'
 import { RootState, useAppDispatch } from '@renderer/store'
 import {
-  setProxyUrl as _setProxyUrl,
   setEnableDataCollection,
   setEnableSpellCheck,
   setLanguage,
   setNotificationSettings,
   setProxyMode,
+  setProxyUrl as _setProxyUrl,
   setSpellCheckLanguages
 } from '@renderer/store/settings'
 import { LanguageVarious } from '@renderer/types'

@@ -43,6 +43,8 @@ interface AssistantItemProps {
   addAssistant: (assistant: Assistant) => void
   onTagClick?: (tag: string) => void
   handleSortByChange?: (sortType: AssistantsSortType) => void
+  gridMode?: boolean
+  disableHover?: boolean
 }
 
 const AssistantItem: FC<AssistantItemProps> = ({
@@ -53,7 +55,9 @@ const AssistantItem: FC<AssistantItemProps> = ({
   onDelete,
   addAgent,
   addAssistant,
-  handleSortByChange
+  handleSortByChange,
+  gridMode = false,
+  disableHover = false
 }) => {
   const { t } = useTranslation()
   const { allTags } = useTags()
@@ -141,12 +145,14 @@ const AssistantItem: FC<AssistantItemProps> = ({
 
   return (
     <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
-      <Container onClick={handleSwitch} className={isActive ? 'active' : ''}>
+      <Container
+        onClick={handleSwitch}
+        className={`${isActive ? 'active' : ''} ${gridMode ? 'grid-mode' : ''} ${disableHover ? 'no-hover' : ''}`}>
         <AssistantNameRow className="name" title={fullAssistantName}>
           {assistantIconType === 'model' ? (
             <ModelAvatar
               model={assistant.model || defaultModel}
-              size={24}
+              size={gridMode ? 32 : 24}
               className={isPending && !isActive ? 'animation-pulse' : ''}
             />
           ) : (
@@ -157,9 +163,10 @@ const AssistantItem: FC<AssistantItemProps> = ({
               />
             )
           )}
-          <AssistantName className="text-nowrap">{assistantName}</AssistantName>
+          {!gridMode && <AssistantName className="text-nowrap">{assistantName}</AssistantName>}
         </AssistantNameRow>
-        {isActive && (
+        {gridMode && <AssistantNameTooltip className="name-tooltip">{assistantName}</AssistantNameTooltip>}
+        {isActive && !gridMode && (
           <MenuButton onClick={() => EventEmitter.emit(EVENT_NAMES.SWITCH_TOPIC_SIDEBAR)}>
             <TopicCount className="topics-count">{assistant.topics.length}</TopicCount>
           </MenuButton>
@@ -389,11 +396,42 @@ const Container = styled.div`
   border: 0.5px solid transparent;
   width: calc(var(--assistants-width) - 20px);
   cursor: pointer;
-  &:hover {
+
+  &:hover:not(.no-hover) {
     background-color: var(--color-list-item-hover);
   }
+
   &.active {
     background-color: var(--color-list-item);
+  }
+
+  &.grid-mode {
+    padding: 12px;
+    width: 100%;
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+
+    &:hover:not(.no-hover) {
+      background-color: var(--color-list-item-hover);
+      border-color: var(--color-border);
+
+      .name-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(-100%);
+      }
+    }
+
+    &.active {
+      background-color: var(--color-list-item);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 1px var(--color-primary);
+    }
   }
 `
 
@@ -404,6 +442,11 @@ const AssistantNameRow = styled.div`
   flex-direction: row;
   align-items: center;
   gap: 8px;
+
+  .Container.grid-mode & {
+    flex-direction: column;
+    gap: 4px;
+  }
 `
 
 const AssistantName = styled.div`
@@ -435,6 +478,35 @@ const TopicCount = styled.div`
   flex-direction: row;
   justify-content: center;
   align-items: center;
+`
+
+const AssistantNameTooltip = styled.div`
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--color-text);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--color-background);
+  }
 `
 
 export default memo(AssistantItem)

@@ -1,17 +1,20 @@
+import { DownOutlined, PlusOutlined, UpOutlined } from '@ant-design/icons'
 import AddAssistantPopup from '@renderer/components/Popups/AddAssistantPopup'
+import { useAgents } from '@renderer/hooks/useAgents'
 import { useAssistants, useDefaultAssistant } from '@renderer/hooks/useAssistant'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { useShowTopics } from '@renderer/hooks/useStore'
+import { useAssistantsTabSortType } from '@renderer/hooks/useStore'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import { Assistant, Topic } from '@renderer/types'
 import { uuid } from '@renderer/utils'
-import { Segmented as AntSegmented, SegmentedProps } from 'antd'
+import { Button, Segmented as AntSegmented, SegmentedProps } from 'antd'
 import { FC, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
-import AllTopics from './AllTopicsTab'
 import Assistants from './AssistantsTab'
+import AssistantItem from './components/AssistantItem'
 import Settings from './SettingsTab'
 import Topics from './TopicsTab'
 
@@ -25,7 +28,7 @@ interface Props {
   style?: React.CSSProperties
 }
 
-type Tab = 'assistants' | 'topic' | 'settings' | 'all-topics'
+type Tab = 'assistants' | 'topic' | 'settings'
 
 let _tab: any = ''
 
@@ -38,9 +41,9 @@ const HomeTabs: FC<Props> = ({
   forceToSeeAllTab,
   style
 }) => {
-  const { addAssistant } = useAssistants()
+  const { addAssistant, assistants } = useAssistants()
   const [tab, setTab] = useState<Tab>(position === 'left' ? _tab || 'assistants' : 'topic')
-  const { topicPosition } = useSettings()
+  const { topicPosition, enableMinimalMode } = useSettings()
   const { defaultAssistant } = useDefaultAssistant()
   const { showTopics, toggleShowTopics } = useShowTopics()
 
@@ -62,6 +65,32 @@ const HomeTabs: FC<Props> = ({
     // icon: <BotIcon size={16} />
   }
 
+  // 在极简模式下，修改tab选项以合并助手和话题
+  const getTabOptions = () => {
+    const baseOptions = [
+      {
+        label: t('common.topics'),
+        value: 'topic'
+        // icon: <MessageSquareQuote size={16} />
+      },
+      {
+        label: t('settings.title'),
+        value: 'settings'
+        // icon: <SettingsIcon size={16} />
+      }
+    ]
+
+    // 只有在非极简模式下才显示助手tab
+    if (
+      !enableMinimalMode &&
+      ((position === 'left' && topicPosition === 'left') || (forceToSeeAllTab == true && position === 'left'))
+    ) {
+      return [assistantTab, ...baseOptions]
+    }
+
+    return baseOptions
+  }
+
   const onCreateAssistant = async () => {
     const assistant = await AddAssistantPopup.show()
     assistant && setActiveAssistant(assistant)
@@ -73,10 +102,79 @@ const HomeTabs: FC<Props> = ({
     setActiveAssistant(assistant)
   }
 
+  // 极简模式下的助手网格组件
+  const MinimalAssistantGrid: FC<{
+    assistants: Assistant[]
+    activeAssistant: Assistant
+    setActiveAssistant: (assistant: Assistant) => void
+    onCreateAssistant: () => void
+    onCreateDefaultAssistant: () => void
+  }> = ({ assistants, activeAssistant, setActiveAssistant, onCreateAssistant, onCreateDefaultAssistant }) => {
+    const { addAgent } = useAgents()
+    const { assistantsTabSortType = 'list' } = useAssistantsTabSortType()
+    const [showAll, setShowAll] = useState(false)
+    const { removeAssistant } = useAssistants()
+
+    // 限制显示的助手数量（3行 x 3列 = 9个）
+    const maxVisible = 9
+    const visibleAssistants = showAll ? assistants : assistants.slice(0, maxVisible)
+    const hasMore = assistants.length > maxVisible
+
+    const onDelete = (assistant: Assistant) => {
+      const remaining = assistants.filter((a) => a.id !== assistant.id)
+      if (assistant.id === activeAssistant?.id) {
+        const newActive = remaining[remaining.length - 1]
+        newActive ? setActiveAssistant(newActive) : onCreateDefaultAssistant()
+      }
+      removeAssistant(assistant.id)
+    }
+
+    return (
+      <MinimalGridContainer>
+        <AssistantGrid>
+          {visibleAssistants.map((assistant) => (
+            <GridAssistantItem key={assistant.id}>
+              <AssistantItem
+                assistant={assistant}
+                isActive={assistant.id === activeAssistant.id}
+                sortBy={assistantsTabSortType}
+                onSwitch={setActiveAssistant}
+                onDelete={onDelete}
+                onCreateDefaultAssistant={onCreateDefaultAssistant}
+                addAgent={addAgent}
+                addAssistant={addAssistant}
+                gridMode={true}
+              />
+            </GridAssistantItem>
+          ))}
+          {/* 固定的添加助手按钮 */}
+          <GridAssistantItem>
+            <AddAssistantButton onClick={onCreateAssistant}>
+              <AddAssistantIcon>
+                <PlusOutlined />
+              </AddAssistantIcon>
+            </AddAssistantButton>
+          </GridAssistantItem>
+        </AssistantGrid>
+
+        {hasMore && (
+          <CollapseButton onClick={() => setShowAll(!showAll)}>
+            {showAll ? <UpOutlined /> : <DownOutlined />}
+            {showAll ? t('common.collapse') : t('common.expand')}
+          </CollapseButton>
+        )}
+      </MinimalGridContainer>
+    )
+  }
+
   useEffect(() => {
     const unsubscribes = [
       EventEmitter.on(EVENT_NAMES.SHOW_ASSISTANTS, (): any => {
-        showTab && setTab('assistants')
+        if (enableMinimalMode && topicPosition === 'left') {
+          showTab && setTab('topic')
+        } else {
+          showTab && setTab('assistants')
+        }
       }),
       EventEmitter.on(EVENT_NAMES.SHOW_TOPIC_SIDEBAR, (): any => {
         showTab && setTab('topic')
@@ -92,7 +190,7 @@ const HomeTabs: FC<Props> = ({
       })
     ]
     return () => unsubscribes.forEach((unsub) => unsub())
-  }, [position, showTab, tab, toggleShowTopics, topicPosition])
+  }, [position, showTab, tab, toggleShowTopics, topicPosition, enableMinimalMode])
 
   useEffect(() => {
     if (position === 'right' && topicPosition === 'right' && tab === 'assistants') {
@@ -101,69 +199,102 @@ const HomeTabs: FC<Props> = ({
     if (position === 'left' && topicPosition === 'right' && forceToSeeAllTab != true && tab !== 'assistants') {
       setTab('assistants')
     }
-  }, [position, tab, topicPosition, forceToSeeAllTab])
+    // 极简模式下，如果当前是助手tab，自动切换到话题tab，但只在话题位置为左侧时
+    if (enableMinimalMode && topicPosition === 'left' && tab === 'assistants') {
+      setTab('topic')
+    }
+  }, [position, tab, topicPosition, forceToSeeAllTab, enableMinimalMode])
 
   return (
     <Container style={{ ...border, ...style }} className="home-tabs">
-      {(showTab || (forceToSeeAllTab == true && !showTopics)) && (
+      {/* 极简模式下直接显示助手网格布局，但只在话题位置为左侧时 */}
+      {enableMinimalMode && topicPosition === 'left' ? (
+        <MinimalAssistantGrid
+          assistants={assistants}
+          activeAssistant={activeAssistant}
+          setActiveAssistant={setActiveAssistant}
+          onCreateAssistant={onCreateAssistant}
+          onCreateDefaultAssistant={onCreateDefaultAssistant}
+        />
+      ) : (
         <>
-          <Segmented
-            value={tab}
-            style={{ borderRadius: 50 }}
-            shape="round"
-            options={
-              [
-                (position === 'left' && topicPosition === 'left') || (forceToSeeAllTab == true && position === 'left')
-                  ? assistantTab
-                  : undefined,
-                {
-                  label: t('common.topics'),
-                  value: 'topic'
-                  // icon: <MessageSquareQuote size={16} />
-                },
-                {
-                  label: t('common.all_topics'),
-                  value: 'all-topics'
-                  // icon: <FolderOutlined size={16} />
-                },
-                {
-                  label: t('settings.title'),
-                  value: 'settings'
-                  // icon: <SettingsIcon size={16} />
-                }
-              ].filter(Boolean) as SegmentedProps['options']
-            }
-            onChange={(value) => setTab(value as Tab)}
-            block
-          />
-          <Divider />
+          {(showTab || (forceToSeeAllTab == true && !showTopics)) && (
+            <>
+              <Segmented
+                value={tab}
+                style={{ borderRadius: 50 }}
+                shape="round"
+                options={getTabOptions().filter(Boolean) as SegmentedProps['options']}
+                onChange={(value) => setTab(value as Tab)}
+                block
+              />
+              <Divider />
+            </>
+          )}
+
+          <TabContent className="home-tabs-content">
+            {tab === 'assistants' && (
+              <Assistants
+                activeAssistant={activeAssistant}
+                setActiveAssistant={setActiveAssistant}
+                onCreateAssistant={onCreateAssistant}
+                onCreateDefaultAssistant={onCreateDefaultAssistant}
+              />
+            )}
+            {tab === 'topic' && (
+              <Topics assistant={activeAssistant} activeTopic={activeTopic} setActiveTopic={setActiveTopic} />
+            )}
+            {tab === 'settings' && <Settings assistant={activeAssistant} />}
+          </TabContent>
         </>
       )}
 
-      <TabContent className="home-tabs-content">
-        {tab === 'assistants' && (
-          <Assistants
-            activeAssistant={activeAssistant}
-            setActiveAssistant={setActiveAssistant}
-            onCreateAssistant={onCreateAssistant}
-            onCreateDefaultAssistant={onCreateDefaultAssistant}
-          />
-        )}
-        {tab === 'topic' && (
+      {/* 极简模式下，助手网格下方显示话题列表，但只在话题位置为左侧时 */}
+      {enableMinimalMode && topicPosition === 'left' && (
+        <TabContent className="home-tabs-content">
           <Topics assistant={activeAssistant} activeTopic={activeTopic} setActiveTopic={setActiveTopic} />
-        )}
-        {tab === 'all-topics' && (
-          <AllTopics
-            activeTopic={activeTopic}
-            setActiveTopic={setActiveTopic}
-            setActiveAssistant={setActiveAssistant}
-          />
-        )}
-        {tab === 'settings' && <Settings assistant={activeAssistant} />}
-      </TabContent>
+        </TabContent>
+      )}
     </Container>
   )
 }
+
+const MinimalGridContainer = styled.div`
+  padding: 10px;
+  border-bottom: 0.5px solid var(--color-border);
+`
+
+const AssistantGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+`
+
+const GridAssistantItem = styled.div`
+  .ant-dropdown-trigger {
+    width: 100%;
+    height: 100%;
+  }
+`
+
+const CollapseButton = styled(Button)`
+  width: 100%;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  &:hover {
+    background-color: var(--color-list-item-hover);
+    color: var(--color-text);
+  }
+`
 
 const Container = styled.div`
   display: flex;
@@ -248,6 +379,31 @@ const Segmented = styled(AntSegmented)`
   /* These styles ensure the same appearance as before */
   border-radius: 0;
   box-shadow: none;
+`
+
+const AddAssistantButton = styled.div`
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--list-item-border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text-secondary);
+
+  &:hover {
+    background-color: var(--color-list-item-hover);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+`
+
+const AddAssistantIcon = styled.div`
+  font-size: 24px;
 `
 
 export default HomeTabs

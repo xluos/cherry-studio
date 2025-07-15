@@ -1,23 +1,23 @@
 import store, { useAppDispatch, useAppSelector } from '@renderer/store'
 import {
-  setAutoCheckUpdate as _setAutoCheckUpdate,
-  setSendMessageShortcut as _setSendMessageShortcut,
-  setTestChannel as _setTestChannel,
-  setTestPlan as _setTestPlan,
-  setTray as _setTray,
   AssistantIconType,
   SendMessageShortcut,
   setAssistantIconType,
+  setAutoCheckUpdate as _setAutoCheckUpdate,
   setEnableMinimalMode,
   setLaunchOnBoot,
   setLaunchToTray,
   setPinTopicsToTop,
+  setSendMessageShortcut as _setSendMessageShortcut,
   setShowTokens,
   setSidebarIcons,
   setTargetLanguage,
+  setTestChannel as _setTestChannel,
+  setTestPlan as _setTestPlan,
   setTheme,
   SettingsState,
   setTopicPosition,
+  setTray as _setTray,
   setTrayOnClose,
   setWindowStyle
 } from '@renderer/store/settings'
